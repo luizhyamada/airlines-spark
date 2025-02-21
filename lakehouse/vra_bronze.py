@@ -16,18 +16,12 @@ spark = configure_spark_with_delta_pip(builder).getOrCreate()
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 base_input_vra_path = os.path.abspath(os.path.join(current_dir, "../datasets/VRA"))
-base_output_path = os.path.join(current_dir, "01-bronze")
+base_output_path = os.path.join(current_dir, "01-bronze/vra")
 
 os.makedirs(base_output_path, exist_ok=True)
 
-def process_files(input_base_path, output_path, file_format):
-    df = spark.read.json(os.path.join(input_base_path, '*.json'))
+df = spark.read.json(os.path.join(base_input_vra_path, '*.json'))
 
-    df.write.format("delta").mode("overwrite").save(output_path)
-    print(f"Combined Delta table for {file_format.upper()} written to {output_path}")
-
-vra_output_path = os.path.join(base_output_path, "vra")
-
-process_files(base_input_vra_path, vra_output_path, file_format='json')
+df.write.format("delta").mode("overwrite").save(base_output_path)
 
 print("Bronze layer populated successfully.")
