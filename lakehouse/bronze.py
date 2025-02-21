@@ -42,7 +42,6 @@ def process_files(input_base_path, output_path, file_format):
             .withColumnRenamed("Data Decisão Operacional", "data_decisao_operacional") \
             .withColumnRenamed("Validade Operacional", "validade_operacional")
 
-    print(f"Loaded {df.count()} rows from dataset.")
     df.write.format("delta").mode("overwrite").save(output_path)
     print(f"Combined Delta table for {file_format.upper()} written to {output_path}")
 
