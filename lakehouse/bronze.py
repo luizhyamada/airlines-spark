@@ -22,49 +22,29 @@ base_output_path = os.path.join(current_dir, "01-bronze")
 
 os.makedirs(base_output_path, exist_ok=True)
 
-def process_air_cia_files(input_base_path, output_path):
-    df_list = []
-    for file_name in os.listdir(input_base_path):
-        input_path = os.path.join(input_base_path, file_name)
-        if file_name.endswith('.csv'):
-            if os.path.exists(input_path):
-                try:
-                    df = spark.read.option("multiline", "True").csv(input_path)
-                    df_list.append(df)
-                    print(f"Loaded {df.count()} rows from dataset: {file_name}")
-                except Exception as e:
-                    print(f"Error processing {input_path}: {e}")
-            else:
-                print(f"Warning: Dataset file not found: {input_path}. Skipping...")
-    
-    if df_list:
-        combined_df = reduce(DataFrame.union, df_list)
-        combined_df.write.format("delta").mode("overwrite").save(output_path)
-        print(f"Combined Delta table for AIR_CIA written to {output_path}")
-
 def process_files(input_base_path, output_path, file_format):
-    df_list = []
-    for file_name in os.listdir(input_base_path):
-        input_path = os.path.join(input_base_path, file_name)
-        if (file_format == 'csv' and file_name.endswith('.csv')) or (file_format == 'json' and file_name.endswith('.json')):
-            if os.path.exists(input_path):
-                try:
-                    if file_format == 'csv':
-                        df = spark.read.option("multiline", "True").option("delimiter", ";").csv(input_path)
-                    elif file_format == 'json':
-                        df = spark.read.json(input_path)
+    if file_format == 'csv':
+        df = spark.read.option("delimiter", ";").option("header", "True").csv(os.path.join(input_base_path, '*.csv'))
+    elif file_format == 'json':
+        df = spark.read.json(os.path.join(input_base_path, '*.json'))
+    else:
+        raise ValueError("Unsupported file format: {}".format(file_format))
 
-                    df_list.append(df)
-                    print(f"Loaded {df.count()} rows from dataset: {file_name}")
-                except Exception as e:
-                    print(f"Error processing {input_path}: {e}")
-            else:
-                print(f"Warning: Dataset file not found: {input_path}. Skipping...")
-    
-    if df_list:
-        combined_df = reduce(DataFrame.union, df_list)
-        combined_df.write.format("delta").mode("overwrite").save(output_path)
-        print(f"Combined Delta table for {file_format.upper()} written to {output_path}")
+    if file_format == 'csv':
+        df = df.withColumnRenamed("Razão Social", "razao_social") \
+            .withColumnRenamed("ICAO IATA", "icao_iata") \
+            .withColumnRenamed("CNPJ", "cnpj") \
+            .withColumnRenamed("Atividades Aéreas", "atividades_aereas") \
+            .withColumnRenamed("Endereço Sede", "endereco_sede") \
+            .withColumnRenamed("Telefone", "telefone") \
+            .withColumnRenamed("E-Mail", "email") \
+            .withColumnRenamed("Decisão Operacional", "decisao_operacional") \
+            .withColumnRenamed("Data Decisão Operacional", "data_decisao_operacional") \
+            .withColumnRenamed("Validade Operacional", "validade_operacional")
+
+    print(f"Loaded {df.count()} rows from dataset.")
+    df.write.format("delta").mode("overwrite").save(output_path)
+    print(f"Combined Delta table for {file_format.upper()} written to {output_path}")
 
 air_cia_output_path = os.path.join(base_output_path, "air_cia")
 vra_output_path = os.path.join(base_output_path, "vra")
