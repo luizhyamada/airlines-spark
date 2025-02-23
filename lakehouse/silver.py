@@ -28,16 +28,16 @@ bronze_tables = [
 
 def transform_air_cia(df):
     return df.select(
-        col("_c0").alias("company_name"),
-        split(col("_c1"), " ").alias("icao_iata"),
-        col("_c2").alias("cnpj"),
-        col("_c3").alias("air_activities"),
-        col("_c4").alias("headquarters_address"),
-        col("_c5").alias("phone"),
-        col("_c6").alias("email"),
-        col("_c7").alias("operational_decision"),
-        col("_c8").alias("operational_decision_date"),
-        col("_c9").alias("operational_validity")
+        col("razao_social").alias("company_name"),
+        split(col("icao_iata"), " ").alias("icao_iata"),
+        col("cnpj").alias("cnpj"),
+        col("atividades_aereas").alias("air_activities"),
+        col("endereco_sede").alias("headquarters_address"),
+        col("telefone").alias("phone"),
+        col("email").alias("email"),
+        col("decisao_operacional").alias("operational_decision"),
+        col("data_decisao_operacional").alias("operational_decision_date"),
+        col("validade_operacional").alias("operational_validity")
     ).withColumn(
         "icao", col("icao_iata").getItem(0)
     ).withColumn(

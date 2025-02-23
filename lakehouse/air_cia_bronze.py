@@ -1,28 +1,17 @@
 import os
-from pyspark.sql import SparkSession
-from delta import configure_spark_with_delta_pip
+from config import base_input_air_cia_path, bronze_air_cia_output_path
+from spark_session import get_spark_session
 
 os.environ["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk/Contents/Home"
 os.environ["PATH"] = f"{os.environ['JAVA_HOME']}/bin:" + os.environ["PATH"]
 
-builder = SparkSession.builder \
-    .appName("") \
-    .master("local[1]") \
-    .config("spark.sql.shuffle.partitions", "2") \
-    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+spark = get_spark_session()
 
-spark = configure_spark_with_delta_pip(builder).getOrCreate()
+os.makedirs(bronze_air_cia_output_path, exist_ok=True)
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-base_input_air_cia_path = os.path.abspath(os.path.join(current_dir, "../datasets/AIR_CIA"))
-base_output_path = os.path.join(current_dir, "01-bronze/air_cia")
-
-os.makedirs(base_output_path, exist_ok=True)
-
-df = spark.read.option("delimiter", ";").option("header", "True").csv(os.path.join(base_input_air_cia_path, '*.csv'))
-
-df = df.withColumnRenamed("Razão Social", "razao_social") \
+spark.read.option("delimiter", ";").option("header", "True").csv \
+    (os.path.join(base_input_air_cia_path, '*.csv')) \
+    .withColumnRenamed("Razão Social", "razao_social") \
     .withColumnRenamed("ICAO IATA", "icao_iata") \
     .withColumnRenamed("CNPJ", "cnpj") \
     .withColumnRenamed("Atividades Aéreas", "atividades_aereas") \
@@ -31,8 +20,7 @@ df = df.withColumnRenamed("Razão Social", "razao_social") \
     .withColumnRenamed("E-Mail", "email") \
     .withColumnRenamed("Decisão Operacional", "decisao_operacional") \
     .withColumnRenamed("Data Decisão Operacional", "data_decisao_operacional") \
-    .withColumnRenamed("Validade Operacional", "validade_operacional")
+    .withColumnRenamed("Validade Operacional", "validade_operacional") \
+    .write.format("delta").mode("overwrite").save(bronze_air_cia_output_path)
 
-df.write.format("delta").mode("overwrite").save(base_output_path)
-
-print(f"Bronze layer populated successfully. Delta table written to {base_output_path}")
+print(f"Bronze layer populated successfully. Delta table written to {bronze_air_cia_output_path}")
